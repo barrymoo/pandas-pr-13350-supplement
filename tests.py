@@ -631,27 +631,217 @@ print("-->  End: Test 10 test_to_latex_escape_special_chars  <--")
 
 # Test 11 test_to_latex_format
 print("--> Begin: Test 11 test_to_latex_format <--")
-# CORRECTIONS:
+df = pd.DataFrame({'a': [1, 2], 'b': ['b1', 'b2']})
+withindex_result = df.to_latex(column_format='ccc')
+withindex_expected = r"""\begin{tabular}{ccc}
+\toprule
+{} &  a &   b \\
+\midrule
+0 &  1 &  b1 \\
+1 &  2 &  b2 \\
+\bottomrule
+\end{tabular}
+"""
+#assert(withindex_result == withindex_expected)
+print(withoutindex_result)
+# CORRECTIONS: Whitespace correction
 print("-->  End: Test 11 test_to_latex_format  <--")
 
 # Test 12 test_to_latex_longtable
 print("--> Begin: Test 12 test_to_latex_longtable <--")
-# CORRECTIONS:
+df = pd.DataFrame({'a': [1, 2], 'b': ['b1', 'b2']})
+withindex_result = df.to_latex(longtable=True)
+withindex_expected = r"""\begin{longtable}{lrl}
+\toprule
+{} &  a &   b \\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r}{{Continued on next page}} \\
+\midrule
+\endfoot
+
+\bottomrule
+\endlastfoot
+0 &  1 &  b1 \\
+1 &  2 &  b2 \\
+\end{longtable}
+"""
+
+#assert(withindex_result == withindex_expected)
+print(withindex_result)
+
+withoutindex_result = df.to_latex(index=False, longtable=True)
+withoutindex_expected = r"""\begin{longtable}{rl}
+\toprule
+ a &   b \\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r}{{Continued on next page}} \\
+\midrule
+\endfoot
+
+\bottomrule
+\endlastfoot
+ 1 &  b1 \\
+ 2 &  b2 \\
+\end{longtable}
+"""
+#assert(withoutindex_result == withoutindex_expected)
+print(withoutindex_result)
+# CORRECTIONS: fixing whitespace
 print("-->  End: Test 12 test_to_latex_longtable  <--")
 
 # Test 13 test_to_latex_multiindex
 print("--> Begin: Test 13 test_to_latex_multiindex <--")
-# CORRECTIONS:
+df = pd.DataFrame({('x', 'y'): ['a']})
+result = df.to_latex()
+expected = r"""\begin{tabular}{ll}
+\toprule
+{} &  x \\
+{} &  y \\
+\midrule
+0 &  a \\
+\bottomrule
+\end{tabular}
+"""
+
+#assert(result == expected)
+print(result)
+
+result = df.T.to_latex()
+expected = r"""\begin{tabular}{lll}
+\toprule
+  &   &  0 \\
+\midrule
+x & y &  a \\
+\bottomrule
+\end{tabular}
+"""
+
+#assert(result == expected)
+print(result)
+
+df = pd.DataFrame.from_dict({
+    ('c1', 0): pd.Series(dict((x, x) for x in range(4))),
+    ('c1', 1): pd.Series(dict((x, x + 4) for x in range(4))),
+    ('c2', 0): pd.Series(dict((x, x) for x in range(4))),
+    ('c2', 1): pd.Series(dict((x, x + 4) for x in range(4))),
+    ('c3', 0): pd.Series(dict((x, x) for x in range(4))),
+}).T
+result = df.to_latex()
+expected = r"""\begin{tabular}{llrrrr}
+\toprule
+   &   &  0 &  1 &  2 &  3 \\
+\midrule
+c1 & 0 &  0 &  1 &  2 &  3 \\
+   & 1 &  4 &  5 &  6 &  7 \\
+c2 & 0 &  0 &  1 &  2 &  3 \\
+   & 1 &  4 &  5 &  6 &  7 \\
+c3 & 0 &  0 &  1 &  2 &  3 \\
+\bottomrule
+\end{tabular}
+"""
+
+#assert(result == expected)
+print(result)
+
+# GH 10660
+df = pd.DataFrame({'a': [0, 0, 1, 1],
+                    'b': list('abab'),
+                    'c': [1, 2, 3, 4]})
+result = df.set_index(['a', 'b']).to_latex()
+expected = r"""\begin{tabular}{llr}
+\toprule
+  &   &  c \\
+a & b &    \\
+\midrule
+0 & a &  1 \\
+  & b &  2 \\
+1 & a &  3 \\
+  & b &  4 \\
+\bottomrule
+\end{tabular}
+"""
+
+#assert(result == expected)
+print(result)
+
+result = df.groupby('a').describe().to_latex()
+expected = r"""\begin{tabular}{llr}
+\toprule
+  &       &         c \\
+a & {} &           \\
+\midrule
+0 & count &  2.000000 \\
+  & mean &  1.500000 \\
+  & std &  0.707107 \\
+  & min &  1.000000 \\
+  & 25\% &  1.250000 \\
+  & 50\% &  1.500000 \\
+  & 75\% &  1.750000 \\
+  & max &  2.000000 \\
+1 & count &  2.000000 \\
+  & mean &  3.500000 \\
+  & std &  0.707107 \\
+  & min &  3.000000 \\
+  & 25\% &  3.250000 \\
+  & 50\% &  3.500000 \\
+  & 75\% &  3.750000 \\
+  & max &  4.000000 \\
+\bottomrule
+\end{tabular}
+"""
+
+assert(result == expected)
+# CORRECTIONS: fix whitespace
 print("-->  End: Test 13 test_to_latex_multiindex  <--")
 
 # Test 14 test_to_latex_no_header
 print("--> Begin: Test 14 test_to_latex_no_header <--")
-# CORRECTIONS:
+df = pd.DataFrame({'a': [1, 2], 'b': ['b1', 'b2']})
+withindex_result = df.to_latex(header=False)
+withindex_expected = r"""\begin{tabular}{lrl}
+\toprule
+0 &  1 &  b1 \\
+1 &  2 &  b2 \\
+\bottomrule
+\end{tabular}
+"""
+
+#assert(withindex_result == withindex_expected)
+print(withindex_result)
+
+withoutindex_result = df.to_latex(index=False, header=False)
+withoutindex_expected = r"""\begin{tabular}{rl}
+\toprule
+ 1 &  b1 \\
+ 2 &  b2 \\
+\bottomrule
+\end{tabular}
+"""
+
+#assert(withoutindex_result == withoutindex_expected)
+print(withoutindex_result)
+# CORRECTIONS: fix whitespace
 print("-->  End: Test 14 test_to_latex_no_header  <--")
 
 # Test 15 test_to_string_float_index
 print("--> Begin: Test 15 test_to_string_float_index <--")
-# CORRECTIONS:
+index = pd.Index([1.5, 2, 3, 4, 5])
+df = pd.DataFrame(lrange(5), index=index)
+
+result = df.to_string()
+expected = ('     0\n'
+            '1.5  0\n'
+            '2.0  1\n'
+            '3.0  2\n'
+            '4.0  3\n'
+            '5.0  4')
+#assert(result == expected)
+print(result)
+# CORRECTIONS: fix whitespace
 print("-->  End: Test 15 test_to_string_float_index  <--")
 
 # Test 16 test_to_string_format_na
