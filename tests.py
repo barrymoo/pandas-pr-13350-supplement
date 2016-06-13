@@ -846,26 +846,80 @@ print("-->  End: Test 15 test_to_string_float_index  <--")
 
 # Test 16 test_to_string_format_na
 print("--> Begin: Test 16 test_to_string_format_na <--")
-# CORRECTIONS:
+df =pd.DataFrame({'A': [np.nan, -1, -2.1234, 3, 4],
+                'B': [np.nan, 'foo', 'foooo', 'fooooo', 'bar']})
+result = df.to_string()
+
+expected = ('        A       B\n'
+            '0     NaN     NaN\n'
+            '1 -1.0000     foo\n'
+            '2 -2.1234   foooo\n'
+            '3  3.0000  fooooo\n'
+            '4  4.0000     bar')
+#assert(result == expected)
+print(result)
+
+df =pd.DataFrame({'A': [np.nan, -1., -2., 3., 4.],
+                'B': [np.nan, 'foo', 'foooo', 'fooooo', 'bar']})
+result = df.to_string()
+
+expected = ('     A       B\n'
+            '0  NaN     NaN\n'
+            '1 -1.0     foo\n'
+            '2 -2.0   foooo\n'
+            '3  3.0  fooooo\n'
+            '4  4.0     bar')
+#assert(result == expected)
+print(result)
+# CORRECTIONS: whitespace
 print("-->  End: Test 16 test_to_string_format_na  <--")
 
 # Test 17 test_to_string_index_formatter
 print("--> Begin: Test 17 test_to_string_index_formatter <--")
+df = pd.DataFrame([lrange(5), lrange(5, 10), lrange(10, 15)])
+
+rs = df.to_string(formatters={'__index__': lambda x: 'abc' [x]})
+
+xp = """\
+    0   1   2   3   4
+a   0   1   2   3   4
+b   5   6   7   8   9
+c  10  11  12  13  14\
+"""
+
+#assert(rs == xp)
+print(rs)
 # CORRECTIONS:
 print("-->  End: Test 17 test_to_string_index_formatter  <--")
 
 # Test 18 test_to_string_left_justify_cols
 print("--> Begin: Test 18 test_to_string_left_justify_cols <--")
-# CORRECTIONS:
+df = pd.DataFrame({'x': [3234, 0.253]})
+df_s = df.to_string(justify='left')
+expected = ('   x       \n' '0  3234.000\n' '1     0.253')
+#assert(df_s == expected)
+print(df_s)
+# CORRECTIONS: whitespace
 print("-->  End: Test 18 test_to_string_left_justify_cols  <--")
 
 # Test 19 test_to_string_line_width
 print("--> Begin: Test 19 test_to_string_line_width <--")
+df = pd.DataFrame(123, lrange(10, 15), lrange(30))
+s = df.to_string(line_width=80)
+#assert(max(len(l) for l in s.split('\n')) == 80)
+print('Line 910 max line width: {0}'.format(max(len(l) for l in s.split('\n'))))
 # CORRECTIONS:
 print("-->  End: Test 19 test_to_string_line_width  <--")
 
 # Test 20 test_to_string_no_header
 print("--> Begin: Test 20 test_to_string_no_header <--")
+df = pd.DataFrame({'x': [1, 2, 3], 'y': [4, 5, 6]})
+
+df_s = df.to_string(header=False)
+expected = "0  1  4\n1  2  5\n2  3  6"
+
+#assert(df_s == expected)
+print(df_s)
 # CORRECTIONS:
 print("-->  End: Test 20 test_to_string_no_header  <--")
 
