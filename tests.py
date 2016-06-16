@@ -55,6 +55,14 @@ def has_horizontally_truncated_repr(df):
             return False
     return True
 
+def gen_test_series():
+    s1 = pd.Series(['a'] * 100)
+    s2 = pd.Series(['ab'] * 100)
+    s3 = pd.Series(['a', 'ab', 'abc', 'abcd', 'abcde', 'abcdef'])
+    s4 = s3[::-1]
+    test_sers = {'onel': s1, 'twol': s2, 'asc': s3, 'desc': s4}
+    return test_sers
+
 
 # Test  1 test_datetimelike_frame
 print("--> Begin: Test 1 test_datetimelike_frame <--")
@@ -925,58 +933,339 @@ print("-->  End: Test 20 test_to_string_no_header  <--")
 
 # Test 21 test_to_string_no_index
 print("--> Begin: Test 21 test_to_string_no_index <--")
+df =pd.DataFrame({'x': [1, 2, 3], 'y': [4, 5, 6]})
+
+df_s = df.to_string(index=False)
+expected = "x  y\n1  4\n2  5\n3  6"
+
+#assert(df_s == expected)
+print(df_s)
 # CORRECTIONS:
 print("-->  End: Test 21 test_to_string_no_index  <--")
 
 # Test 22 test_to_string_with_formatters
 print("--> Begin: Test 22 test_to_string_with_formatters <--")
+df =pd.DataFrame({'int': [1, 2, 3],
+                'float': [1.0, 2.0, 3.0],
+                'object': [(1, 2), True, False]},
+                columns=['int', 'float', 'object'])
+
+formatters = [('int', lambda x: '0x%x' % x),
+                ('float', lambda x: '[% 4.1f]' % x),
+                ('object', lambda x: '-%s-' % str(x))]
+result = df.to_string(formatters=dict(formatters))
+result2 = df.to_string(formatters=lzip(*formatters)[1])
+#assert(result == ('  int  float    object\n'
+#                            '0 0x1 [ 1.0]  -(1, 2)-\n'
+#                            '1 0x2 [ 2.0]    -True-\n'
+#                            '2 0x3 [ 3.0]   -False-'))
+print(result)
+assert(result == result2)
 # CORRECTIONS:
 print("-->  End: Test 22 test_to_string_with_formatters  <--")
 
 # Test 23 test_east_asian_unicode_series
 print("--> Begin: Test 23 test_east_asian_unicode_series <--")
+if PY3:
+    _rep = repr
+else:
+    _rep = unicode
+# not alighned properly because of east asian width
+
+# unicode index
+s = pd.Series(['a', 'bb', 'CCC', 'D'],
+            index=[u'あ', u'いい', u'ううう', u'ええええ'])
+expected = (u"あ         a\nいい       bb\nううう     CCC\n"
+            u"ええええ      D\ndtype: object")
+#assert(_rep(s) == expected)
+print(_rep(s))
+
+# unicode values
+s = pd.Series([u'あ', u'いい', u'ううう', u'ええええ'],
+            index=['a', 'bb', 'c', 'ddd'])
+expected = (u"a         あ\nbb       いい\nc       ううう\n"
+            u"ddd    ええええ\ndtype: object")
+#assert(_rep(s) == expected)
+print(_rep(s))
+
+# both
+s = pd.Series([u'あ', u'いい', u'ううう', u'ええええ'],
+            index=[u'ああ', u'いいいい', u'う', u'えええ'])
+expected = (u"ああ         あ\nいいいい      いい\nう        ううう\n"
+            u"えええ     ええええ\ndtype: object")
+#assert(_rep(s) == expected)
+print(_rep(s))
+
+# unicode footer
+s = pd.Series([u'あ', u'いい', u'ううう', u'ええええ'],
+            index=[u'ああ', u'いいいい', u'う', u'えええ'], name=u'おおおおおおお')
+expected = (u"ああ         あ\nいいいい      いい\nう        ううう\n"
+            u"えええ     ええええ\nName: おおおおおおお, dtype: object")
+#assert(_rep(s) == expected)
+print(_rep(s))
+
+# MultiIndex
+idx = pd.MultiIndex.from_tuples([(u'あ', u'いい'), (u'う', u'え'), (
+    u'おおお', u'かかかか'), (u'き', u'くく')])
+s = pd.Series([1, 22, 3333, 44444], index=idx)
+expected = (u"あ    いい          1\nう    え          22\nおおお  かかかか     3333\n"
+            u"き    くく      44444\ndtype: int64")
+#assert(_rep(s) == expected)
+print(_rep(s))
+
+# object dtype, shorter than unicode repr
+s = pd.Series([1, 22, 3333, 44444], index=[1, 'AB', np.nan, u'あああ'])
+expected = (u"1          1\nAB        22\nNaN     3333\n"
+            u"あああ    44444\ndtype: int64")
+#assert(_rep(s) == expected)
+print(_rep(s))
+
+# object dtype, longer than unicode repr
+s = pd.Series([1, 22, 3333, 44444],
+            index=[1, 'AB', pd.Timestamp('2011-01-01'), u'あああ'])
+expected = (u"1                          1\nAB                        22\n"
+            u"2011-01-01 00:00:00     3333\nあああ                    44444\ndtype: int64"
+            )
+#assert(_rep(s) == expected)
+print(_rep(s))
+
+# truncate
+with pd.option_context('display.max_rows', 3):
+    s = pd.Series([u'あ', u'いい', u'ううう', u'ええええ'], name=u'おおおおおおお')
+
+    expected = (u"0       あ\n     ... \n"
+                u"3    ええええ\nName: おおおおおおお, dtype: object")
+    #assert(_rep(s) == expected)
+    print(_rep(s))
+
+    s.index = [u'ああ', u'いいいい', u'う', u'えええ']
+    expected = (u"ああ        あ\n       ... \n"
+                u"えええ    ええええ\nName: おおおおおおお, dtype: object")
+    #assert(_rep(s) == expected)
+    print(_rep(s))
+
+# Emable Unicode option -----------------------------------------
+with pd.option_context('display.unicode.east_asian_width', True):
+
+    # unicode index
+    s = pd.Series(['a', 'bb', 'CCC', 'D'],
+                index=[u'あ', u'いい', u'ううう', u'ええええ'])
+    expected = (u"あ            a\nいい         bb\nううう      CCC\n"
+                u"ええええ      D\ndtype: object")
+    #assert(_rep(s) == expected)
+    print(_rep(s))
+
+    # unicode values
+    s = pd.Series([u'あ', u'いい', u'ううう', u'ええええ'],
+                index=['a', 'bb', 'c', 'ddd'])
+    expected = (u"a            あ\nbb         いい\nc        ううう\n"
+                u"ddd    ええええ\ndtype: object")
+    #assert(_rep(s) == expected)
+    print(_rep(s))
+
+    # both
+    s = pd.Series([u'あ', u'いい', u'ううう', u'ええええ'],
+                index=[u'ああ', u'いいいい', u'う', u'えええ'])
+    expected = (u"ああ              あ\nいいいい        いい\nう            ううう\n"
+                u"えええ      ええええ\ndtype: object")
+    #assert(_rep(s) == expected)
+    print(_rep(s))
+
+    # unicode footer
+    s = pd.Series([u'あ', u'いい', u'ううう', u'ええええ'],
+                index=[u'ああ', u'いいいい', u'う', u'えええ'], name=u'おおおおおおお')
+    expected = (u"ああ              あ\nいいいい        いい\nう            ううう\n"
+                u"えええ      ええええ\nName: おおおおおおお, dtype: object")
+    #assert(_rep(s) == expected)
+    print(_rep(s))
+
+    # MultiIndex
+    idx = pd.MultiIndex.from_tuples([(u'あ', u'いい'), (u'う', u'え'), (
+        u'おおお', u'かかかか'), (u'き', u'くく')])
+    s = pd.Series([1, 22, 3333, 44444], index=idx)
+    expected = (u"あ      いい            1\nう      え             22\nおおお  かかかか     3333\n"
+                u"き      くく        44444\ndtype: int64")
+    #assert(_rep(s) == expected)
+    print(_rep(s))
+
+    # object dtype, shorter than unicode repr
+    s = pd.Series([1, 22, 3333, 44444], index=[1, 'AB', np.nan, u'あああ'])
+    expected = (u"1             1\nAB           22\nNaN        3333\n"
+                u"あああ    44444\ndtype: int64")
+    #assert(_rep(s) == expected)
+    print(_rep(s))
+
+    # object dtype, longer than unicode repr
+    s = pd.Series([1, 22, 3333, 44444],
+                index=[1, 'AB', pd.Timestamp('2011-01-01'), u'あああ'])
+    expected = (u"1                          1\nAB                        22\n"
+                u"2011-01-01 00:00:00     3333\nあああ                 44444\ndtype: int64"
+                )
+    #assert(_rep(s) == expected)
+    print(_rep(s))
+
+    # truncate
+    with pd.option_context('display.max_rows', 3):
+        s = pd.Series([u'あ', u'いい', u'ううう', u'ええええ'], name=u'おおおおおおお')
+        expected = (u"0          あ\n       ...   \n"
+                    u"3    ええええ\nName: おおおおおおお, dtype: object")
+        #assert(_rep(s) == expected)
+        print(_rep(s))
+
+        s.index = [u'ああ', u'いいいい', u'う', u'えええ']
+        expected = (u"ああ            あ\n            ...   \n"
+                    u"えええ    ええええ\nName: おおおおおおお, dtype: object")
+        #assert(_rep(s) == expected)
+        print(_rep(s))
+
+    # ambiguous unicode
+    s = pd.Series([u'¡¡', u'い¡¡', u'ううう', u'ええええ'],
+                index=[u'ああ', u'¡¡¡¡いい', u'¡¡', u'えええ'])
+    expected = (u"ああ              ¡¡\n¡¡¡¡いい        い¡¡\n¡¡            ううう\n"
+                u"えええ      ええええ\ndtype: object")
+    #assert(_rep(s) == expected)
+    print(_rep(s))
 # CORRECTIONS:
 print("-->  End: Test 23 test_east_asian_unicode_series  <--")
 
 # Test 24 test_format_explicit
 print("--> Begin: Test 24 test_format_explicit <--")
+with pd.option_context("display.max_rows", 4):
+    test_sers = gen_test_series()
+    res = repr(test_sers['onel'])
+    exp = '0     a\n1     a\n     ..\n98    a\n99    a\ndtype: object'
+    #assert(exp == res)
+    print(res)
+    res = repr(test_sers['twol'])
+    exp = ('0     ab\n1     ab\n      ..\n98    ab\n99    ab\ndtype:'
+            ' object')
+    #assert(exp == res)
+    print(res)
+    res = repr(test_sers['asc'])
+    exp = ('0         a\n1        ab\n      ...  \n4     abcde\n5'
+            '    abcdef\ndtype: object')
+    #assert(exp == res)
+    print(res)
+    res = repr(test_sers['desc'])
+    exp = ('5    abcdef\n4     abcde\n      ...  \n1        ab\n0'
+            '         a\ndtype: object')
+    #assert(exp == res)
+    print(res)
 # CORRECTIONS:
 print("-->  End: Test 24 test_format_explicit  <--")
 
 # Test 25 test_period
 print("--> Begin: Test 25 test_period <--")
+df = pd.DataFrame({'A': pd.period_range('2013-01',
+                                        periods=4, freq='M'),
+                    'B': [pd.Period('2011-01', freq='M'),
+                            pd.Period('2011-02-01', freq='D'),
+                            pd.Period('2011-03-01 09:00', freq='H'),
+                            pd.Period('2011-04', freq='M')],
+                    'C': list('abcd')})
+exp = ("        A                B  C\n0 2013-01          2011-01  a\n"
+        "1 2013-02       2011-02-01  b\n2 2013-03 2011-03-01 09:00  c\n"
+        "3 2013-04          2011-04  d")
+#assert(str(df) == exp)
+print(str(df))
 # CORRECTIONS:
 print("-->  End: Test 25 test_period  <--")
 
 # Test 26 test_to_string_dtype
 print("--> Begin: Test 26 test_to_string_dtype <--")
+s = pd.Series(range(100), dtype='int64')
+res = s.to_string(max_rows=2, dtype=True)
+exp = '0      0\n      ..\n99    99\ndtype: int64'
+#assert(res == exp)
+print(res)
+res = s.to_string(max_rows=2, dtype=False)
+exp = '0      0\n      ..\n99    99'
+#assert(res == exp)
+print(res)
 # CORRECTIONS:
 print("-->  End: Test 26 test_to_string_dtype  <--")
 
 # Test 27 test_to_string_header
 print("--> Begin: Test 27 test_to_string_header <--")
+s = pd.Series(range(10), dtype='int64')
+s.index.name = 'foo'
+res = s.to_string(header=True, max_rows=2)
+exp = 'foo\n0    0\n    ..\n9    9'
+#assert(res == exp)
+print(res)
+res = s.to_string(header=False, max_rows=2)
+exp = '0    0\n    ..\n9    9'
+#assert(res == exp)
+print(res)
 # CORRECTIONS:
 print("-->  End: Test 27 test_to_string_header  <--")
 
 # Test 29 test_to_string_length
 print("--> Begin: Test 29 test_to_string_length <--")
+s = pd.Series(range(100), dtype='int64')
+res = s.to_string(max_rows=2, length=True)
+exp = '0      0\n      ..\n99    99\nLength: 100'
+#assert(res == exp)
+print(res)
 # CORRECTIONS:
 print("-->  End: Test 29 test_to_string_length  <--")
 
 # Test 30 test_to_string_mixed
 print("--> Begin: Test 30 test_to_string_mixed <--")
+s = pd.Series(['foo', np.nan, -1.23, 4.56])
+result = s.to_string()
+expected = (u('0     foo\n') + u('1     NaN\n') + u('2   -1.23\n') +
+            u('3    4.56'))
+assert(result == expected)
+
+# but don't count NAs as floats
+s = pd.Series(['foo', np.nan, 'bar', 'baz'])
+result = s.to_string()
+expected = (u('0    foo\n') + '1    NaN\n' + '2    bar\n' + '3    baz')
+#assert(result == expected)
+print(result)
+
+s = pd.Series(['foo', 5, 'bar', 'baz'])
+result = s.to_string()
+expected = (u('0    foo\n') + '1      5\n' + '2    bar\n' + '3    baz')
+#assert(result == expected)
+print(result)
 # CORRECTIONS:
 print("-->  End: Test 30 test_to_string_mixed  <--")
 
 # Test 31 test_to_string_name
 print("--> Begin: Test 31 test_to_string_name <--")
+s = pd.Series(range(100), dtype='int64')
+s.name = 'myser'
+res = s.to_string(max_rows=2, name=True)
+exp = '0      0\n      ..\n99    99\nName: myser'
+#assert(res == exp)
+print(res)
+res = s.to_string(max_rows=2, name=False)
+exp = '0      0\n      ..\n99    99'
+#assert(res == exp)
+print(res)
 # CORRECTIONS:
 print("-->  End: Test 31 test_to_string_name  <--")
 
 # Test 32 test_truncate_ndots
 print("--> Begin: Test 32 test_truncate_ndots <--")
+def getndots(s):
+    return len(re.match('[^\.]*(\.*)', s).groups()[0])
+
+s = pd.Series([0, 2, 3, 6])
+with pd.option_context("display.max_rows", 2):
+    strrepr = repr(s).replace('\n', '')
+assert(getndots(strrepr) == 2)
+
+s = pd.Series([0, 100, 200, 400])
+with pd.option_context("display.max_rows", 2):
+    strrepr = repr(s).replace('\n', '')
+#assert(getndots(strrepr) == 3)
+print(getndots(strrepr))
 # CORRECTIONS:
 print("-->  End: Test 32 test_truncate_ndots  <--")
 
 print("Look into:")
-print("--> Non-failing tests: 6, 10")
+print("--> Non-failing tests: 6, 10, 32")
+print("--> Need opinions about formatting here")
